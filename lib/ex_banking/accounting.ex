@@ -1,7 +1,9 @@
 defmodule ExBanking.Accounting do
   @moduledoc """
-
+  Accounting context for the ExBanking Application
   """
+
+  import ExBanking.Accounting.Validators
 
   alias ExBanking.Accounting.AccountSupervisor
   alias ExBanking.Accounting.UserServer
@@ -41,10 +43,21 @@ defmodule ExBanking.Accounting do
     end
   end
 
+  def get_balance(name, currency) do 
+    with {:ok, pid} <- find_user(name) do
+      UserServer.get_balance(pid, currency)
+    end
+  end
+
   def send(sender, receiver, amount, currency) do 
-    with {:ok, sender_pid} <- find_user(sender),
-         {:ok, receiver_pid} <- find_user(receiver) do
+    with {:sender, {:ok, sender_pid}} <- {:sender, find_user(sender)},
+         {:receiver, {:ok, receiver_pid}} <- {:receiver, find_user(receiver)} do
       UserServer.send(sender_pid, receiver_pid, amount, currency)
+    else
+      {:sender, {:error, :user_does_not_exist}} ->
+        {:error, :sender_does_not_exist}
+      {:receiver, {:error, :user_does_not_exist}} ->
+        {:error, :receiver_does_not_exist}
     end
   end
 end

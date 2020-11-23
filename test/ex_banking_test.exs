@@ -25,12 +25,14 @@ defmodule ExBankingTest do
   describe "deposit/3" do
     test "increases a currency" do 
       ExBanking.create_user("deposit-1")
+
       assert {:ok, 1000} = ExBanking.deposit("deposit-1", 1000, "BRL")
       assert {:ok, 2000} = ExBanking.deposit("deposit-1", 1000, "BRL")
     end
 
     test "works with multiple currencies" do 
       ExBanking.create_user("deposit-2")
+
       assert {:ok, 1000} = ExBanking.deposit("deposit-2", 1000, "BRL")
       assert {:ok, 1000} = ExBanking.deposit("deposit-2", 1000, "EUR")
       assert {:ok, 2000} = ExBanking.deposit("deposit-2", 1000, "BRL")
@@ -70,6 +72,60 @@ defmodule ExBankingTest do
 
     test "fails if user does not exist" do 
       assert {:error, :user_does_not_exist} = ExBanking.withdraw("withdraw-4", 1000, "BRL")
+    end
+  end
+
+  describe "get_balance/3" do
+    test "returns balance for a specific currency" do 
+      ExBanking.create_user("balance-1")
+
+      assert {:ok, 1000} = ExBanking.deposit("balance-1", 1000, "BRL")
+      assert {:ok, 1000} = ExBanking.get_balance("balance-1", "BRL")
+    end
+
+    test "return 0 if never deposited" do 
+      ExBanking.create_user("balance-2")
+
+      assert {:ok, 0} = ExBanking.get_balance("balance-2", "BRL")
+    end
+
+    test "fails if user does not exist" do 
+      assert {:error, :user_does_not_exist} = ExBanking.get_balance("balance-3", "BRL")
+    end
+  end
+
+  describe "send/4" do 
+    test "sends money" do 
+      ExBanking.create_user("sender-1")
+      ExBanking.create_user("receiver-1")
+      assert {:ok, 3000} = ExBanking.deposit("sender-1", 3000, "BRL")
+
+      assert {:ok, 2000, 1000} = ExBanking.send("sender-1", "receiver-1", 1000, "BRL")
+      assert {:ok, 1000, 2000} = ExBanking.send("sender-1", "receiver-1", 1000, "BRL")
+    end
+
+    test "fails with specific error if sender doesn't exist" do 
+      ExBanking.create_user("receiver-2")
+
+      assert {:error, :sender_does_not_exist} = ExBanking.send("sender-2", "receiver-2", 1000, "BRL")
+    end
+
+    test "fails with specific error if receiver doesn't exist" do 
+      ExBanking.create_user("sender-3")
+
+      assert {:error, :receiver_does_not_exist} = ExBanking.send("sender-3", "receiver-3", 1000, "BRL")
+    end
+
+    test "fails if not enough money" do 
+      ExBanking.create_user("sender-4")
+      ExBanking.create_user("receiver-4")
+      assert {:ok, 3000} = ExBanking.deposit("sender-4", 3000, "BRL")
+
+      assert {:error, :not_enough_money} = ExBanking.send("sender-4", "receiver-4", 5000, "BRL")
+
+      # ballances are not affected
+      assert {:ok, 3000} = ExBanking.get_balance("sender-4", "BRL")
+      assert {:ok, 0} = ExBanking.get_balance("receiver-4", "BRL")
     end
   end
 end
