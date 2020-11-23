@@ -1,16 +1,16 @@
 defmodule ExBanking.Accounting.UserServer do
   use GenServer
 
+  @max_message_queue 10
+
   ## Client 
   def start_link(name) do
     GenServer.start_link(__MODULE__, [], name: {:global, name})
   end
 
   def available?(pid) do
-    pid
-    |> Process.info(:message_queue_len)
-    |> case do
-      {:message_queue_len, n} when n < 10 ->
+    case :erpc.call(node(pid), Process, :info, [pid, :message_queue_len]) do
+      {:message_queue_len, n} when n < @max_message_queue ->
         true
 
       _ ->
@@ -73,7 +73,7 @@ defmodule ExBanking.Accounting.UserServer do
   end
 
   def handle_call({:withdraw, amount, currency}, _from, state) do
-    case (state[currency] || 0) - amount do
+    case (state[currency] || 0.0) - amount do
       new_amount when new_amount >= 0 ->
         {:reply, {:ok, new_amount}, Map.put(state, currency, new_amount)}
 
@@ -83,6 +83,6 @@ defmodule ExBanking.Accounting.UserServer do
   end
 
   def handle_call({:get_balance, currency}, _from, state) do
-    {:reply, {:ok, state[currency] || 0}, state}
+    {:reply, {:ok, state[currency] || 0.0}, state}
   end
 end

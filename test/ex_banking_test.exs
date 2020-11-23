@@ -26,20 +26,29 @@ defmodule ExBankingTest do
     test "increases a currency" do
       ExBanking.create_user("deposit-1")
 
-      assert {:ok, 1000} = ExBanking.deposit("deposit-1", 1000, "BRL")
-      assert {:ok, 2000} = ExBanking.deposit("deposit-1", 1000, "BRL")
+      assert {:ok, 1000.0} = ExBanking.deposit("deposit-1", 1000, "BRL")
+      assert {:ok, 2000.0} = ExBanking.deposit("deposit-1", 1000, "BRL")
     end
 
     test "works with multiple currencies" do
       ExBanking.create_user("deposit-2")
 
-      assert {:ok, 1000} = ExBanking.deposit("deposit-2", 1000, "BRL")
-      assert {:ok, 1000} = ExBanking.deposit("deposit-2", 1000, "EUR")
-      assert {:ok, 2000} = ExBanking.deposit("deposit-2", 1000, "BRL")
+      assert {:ok, 1000.0} = ExBanking.deposit("deposit-2", 1000, "BRL")
+      assert {:ok, 1000.0} = ExBanking.deposit("deposit-2", 1000, "EUR")
+      assert {:ok, 2000.0} = ExBanking.deposit("deposit-2", 1000, "BRL")
     end
 
     test "fails if user does not exist" do
       assert {:error, :user_does_not_exist} = ExBanking.deposit("deposit-3", 1000, "BRL")
+    end
+
+    test "works on multiple nodes" do 
+      [node1, node2] = LocalCluster.start_nodes("my_cluster", 2)
+
+      :erpc.call(node1, ExBanking, :create_user, ["deposit-4"])
+
+      assert {:ok, 3000.0} = :erpc.call(node2, ExBanking, :deposit, ["deposit-4", 3000, "BRL"])
+      assert {:ok, 5000.0} = :erpc.call(node1, ExBanking, :deposit, ["deposit-4", 2000, "BRL"])
     end
   end
 
@@ -48,8 +57,8 @@ defmodule ExBankingTest do
       ExBanking.create_user("withdraw-1")
       ExBanking.deposit("withdraw-1", 5000, "BRL")
 
-      assert {:ok, 4000} = ExBanking.withdraw("withdraw-1", 1000, "BRL")
-      assert {:ok, 2000} = ExBanking.withdraw("withdraw-1", 2000, "BRL")
+      assert {:ok, 4000.0} = ExBanking.withdraw("withdraw-1", 1000, "BRL")
+      assert {:ok, 2000.0} = ExBanking.withdraw("withdraw-1", 2000, "BRL")
     end
 
     test "works with multiple currencies" do
@@ -57,9 +66,9 @@ defmodule ExBankingTest do
       ExBanking.deposit("withdraw-2", 5000, "BRL")
       ExBanking.deposit("withdraw-2", 5000, "EUR")
 
-      assert {:ok, 4000} = ExBanking.withdraw("withdraw-2", 1000, "BRL")
-      assert {:ok, 2000} = ExBanking.withdraw("withdraw-2", 3000, "EUR")
-      assert {:ok, 3000} = ExBanking.withdraw("withdraw-2", 1000, "BRL")
+      assert {:ok, 4000.0} = ExBanking.withdraw("withdraw-2", 1000, "BRL")
+      assert {:ok, 2000.0} = ExBanking.withdraw("withdraw-2", 3000, "EUR")
+      assert {:ok, 3000.0} = ExBanking.withdraw("withdraw-2", 1000, "BRL")
     end
 
     test "fails if user doesn't have enough money" do
@@ -67,7 +76,7 @@ defmodule ExBankingTest do
       ExBanking.deposit("withdraw-3", 5000, "BRL")
 
       assert {:error, :not_enough_money} = ExBanking.withdraw("withdraw-3", 6000, "BRL")
-      assert {:ok, 4000} = ExBanking.withdraw("withdraw-3", 1000, "BRL")
+      assert {:ok, 4000.0} = ExBanking.withdraw("withdraw-3", 1000, "BRL")
     end
 
     test "fails if user does not exist" do
@@ -79,14 +88,14 @@ defmodule ExBankingTest do
     test "returns balance for a specific currency" do
       ExBanking.create_user("balance-1")
 
-      assert {:ok, 1000} = ExBanking.deposit("balance-1", 1000, "BRL")
-      assert {:ok, 1000} = ExBanking.get_balance("balance-1", "BRL")
+      assert {:ok, 1000.0} = ExBanking.deposit("balance-1", 1000, "BRL")
+      assert {:ok, 1000.0} = ExBanking.get_balance("balance-1", "BRL")
     end
 
     test "return 0 if never deposited" do
       ExBanking.create_user("balance-2")
 
-      assert {:ok, 0} = ExBanking.get_balance("balance-2", "BRL")
+      assert {:ok, 0.0} = ExBanking.get_balance("balance-2", "BRL")
     end
 
     test "fails if user does not exist" do
@@ -98,10 +107,10 @@ defmodule ExBankingTest do
     test "sends money" do
       ExBanking.create_user("sender-1")
       ExBanking.create_user("receiver-1")
-      assert {:ok, 3000} = ExBanking.deposit("sender-1", 3000, "BRL")
+      assert {:ok, 3000.0} = ExBanking.deposit("sender-1", 3000, "BRL")
 
-      assert {:ok, 2000, 1000} = ExBanking.send("sender-1", "receiver-1", 1000, "BRL")
-      assert {:ok, 1000, 2000} = ExBanking.send("sender-1", "receiver-1", 1000, "BRL")
+      assert {:ok, 2000.0, 1000.0} = ExBanking.send("sender-1", "receiver-1", 1000, "BRL")
+      assert {:ok, 1000.0, 2000.0} = ExBanking.send("sender-1", "receiver-1", 1000, "BRL")
     end
 
     test "fails with specific error if sender doesn't exist" do
@@ -121,13 +130,13 @@ defmodule ExBankingTest do
     test "fails if not enough money" do
       ExBanking.create_user("sender-4")
       ExBanking.create_user("receiver-4")
-      assert {:ok, 3000} = ExBanking.deposit("sender-4", 3000, "BRL")
+      assert {:ok, 3000.0} = ExBanking.deposit("sender-4", 3000, "BRL")
 
       assert {:error, :not_enough_money} = ExBanking.send("sender-4", "receiver-4", 5000, "BRL")
 
       # ballances are not affected
-      assert {:ok, 3000} = ExBanking.get_balance("sender-4", "BRL")
-      assert {:ok, 0} = ExBanking.get_balance("receiver-4", "BRL")
+      assert {:ok, 3000.0} = ExBanking.get_balance("sender-4", "BRL")
+      assert {:ok, 0.0} = ExBanking.get_balance("receiver-4", "BRL")
     end
   end
 end
