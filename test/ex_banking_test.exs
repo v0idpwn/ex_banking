@@ -42,7 +42,7 @@ defmodule ExBankingTest do
       assert {:error, :user_does_not_exist} = ExBanking.deposit("deposit-3", 1000, "BRL")
     end
 
-    test "works on multiple nodes" do 
+    test "works on multiple nodes" do
       [node1, node2] = LocalCluster.start_nodes("my_cluster", 2)
 
       :erpc.call(node1, ExBanking, :create_user, ["deposit-4"])

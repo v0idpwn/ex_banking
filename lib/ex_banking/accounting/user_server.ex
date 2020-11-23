@@ -19,28 +19,31 @@ defmodule ExBanking.Accounting.UserServer do
   end
 
   def deposit(pid, amount, currency) do
-    with {:available?, true} <- {:available?, available?(pid)} do
-      GenServer.call(pid, {:deposit, amount, currency})
-    else
-      {:available?, false} ->
+    case available?(pid) do
+      true ->
+        GenServer.call(pid, {:deposit, amount, currency})
+
+      false ->
         {:error, :too_many_requests_to_user}
     end
   end
 
   def withdraw(pid, amount, currency) do
-    with {:available?, true} <- {:available?, available?(pid)} do
-      GenServer.call(pid, {:withdraw, amount, currency})
-    else
-      {:available?, false} ->
+    case available?(pid) do
+      true ->
+        GenServer.call(pid, {:withdraw, amount, currency})
+
+      false ->
         {:error, :too_many_requests_to_user}
     end
   end
 
   def get_balance(pid, currency) do
-    with {:available?, true} <- {:available?, available?(pid)} do
-      GenServer.call(pid, {:get_balance, currency})
-    else
-      {:available?, false} ->
+    case available?(pid) do
+      true ->
+        GenServer.call(pid, {:get_balance, currency})
+
+      false ->
         {:error, :too_many_requests_to_user}
     end
   end
@@ -67,7 +70,7 @@ defmodule ExBanking.Accounting.UserServer do
   def init(_opts), do: {:ok, %{}}
 
   def handle_call({:deposit, amount, currency}, _from, state) do
-    new_amount = amount + (state[currency] || 0)
+    new_amount = Float.round(amount + (state[currency] || 0), 2)
 
     {:reply, {:ok, new_amount}, Map.put(state, currency, new_amount)}
   end
