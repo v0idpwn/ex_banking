@@ -3,7 +3,7 @@ defmodule ExBanking do
   Documentation for `ExBanking`.
   """
 
-  alias ExBanking.Users
+  alias ExBanking.Accounting
 
   @type banking_error ::
           {:error,
@@ -17,19 +17,36 @@ defmodule ExBanking do
            | :too_many_requests_to_sender
            | :too_many_requests_to_receiver}
 
-  def create_user(user) do 
-    Users.create(user)
+  @spec create_user(user :: String.t()) :: :ok | banking_error
+  def create_user(user) do
+    Accounting.create_user(user)
   end
 
-  def deposit(user, amount, currency) do 
+  @spec deposit(user :: String.t(), amount :: number, currency :: String.t()) ::
+          {:ok, new_balance :: number} | banking_error
+  def deposit(user, amount, currency) do
+    Accounting.deposit(user, amount, currency)
   end
 
-  def withdraw(user, amount, currency) do 
+  @spec withdraw(user :: String.t(), amount :: number, currency :: String.t()) ::
+          {:ok, new_balance :: number} | banking_error
+  def withdraw(user, amount, currency) do
+    Accounting.withdraw(user, amount, currency)
   end
 
-  def get_balance(user, currency) do 
+  @spec get_balance(user :: String.t(), currency :: String.t()) ::
+          {:ok, balance :: number} | banking_error
+  def get_balance(user, currency) do
+    Accounting.get_balance(user, currency)
   end
 
-  def send(from_user, to_user, amount, currency) do 
+  @spec send(
+          from_user :: String.t(),
+          to_user :: String.t(),
+          amount :: number,
+          currency :: String.t()
+        ) :: {:ok, from_user_balance :: number, to_user_balance :: number} | banking_error
+  def send(from_user, to_user, amount, currency) do
+    Accounting.send(from_user, to_user, amount, currency)
   end
 end

@@ -25,7 +25,7 @@ defmodule ExBanking.MixProject do
     [{:local_cluster, "~> 1.2", only: [:test]}]
   end
 
-  def aliases do 
+  def aliases do
     [
       test: "test --no-start"
     ]

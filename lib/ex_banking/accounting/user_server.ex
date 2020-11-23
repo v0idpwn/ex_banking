@@ -2,8 +2,8 @@ defmodule ExBanking.Accounting.UserServer do
   use GenServer
 
   ## Client 
-  def child_spec(name) do
-    {__MODULE__, name: {:global, name}}
+  def start_link(name) do
+    GenServer.start_link(__MODULE__, [], name: {:global, name})
   end
 
   def available?(name) do
