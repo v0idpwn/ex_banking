@@ -6,9 +6,8 @@ defmodule ExBanking.Accounting.UserServer do
     GenServer.start_link(__MODULE__, [], name: {:global, name})
   end
 
-  def available?(name) do
-    name
-    |> :global.whereis_name()
+  def available?(pid) do
+    pid
     |> Process.info(:message_queue_len)
     |> case do
       {:message_queue_len, n} when n < 10 ->
@@ -19,19 +18,40 @@ defmodule ExBanking.Accounting.UserServer do
     end
   end
 
+  def deposit(pid, amount, currency) do 
+    with {:available?, true} <- {:available?, available?(pid)} do
+      GenServer.call(pid, {:deposit, amount, currency})
+    else
+      {:available?, false} ->
+        {:error, :too_many_requests_to_user}
+    end
+  end
+
+  def withdraw(pid, amount, currency) do 
+    with {:available?, true} <- {:available?, available?(pid)} do
+      GenServer.call(pid, {:withdraw, amount, currency})
+    else
+      {:available?, false} ->
+        {:error, :too_many_requests_to_user}
+    end
+  end
+
   ## Server
   def init(_opts), do: {:ok, %{}}
 
-  def handle_call({:deposit, amount, currency}, state) do
-    :timer.sleep(100)
+  def handle_call({:deposit, amount, currency}, _from, state) do
+    new_amount = amount + (state[currency] || 0)
 
-    case state do
-      %{^currency => current_amount} ->
-        Map.put(state, currency, amount + current_amount)
+    {:reply, {:ok, new_amount}, Map.put(state, currency, new_amount)}
+  end
 
-      %{} ->
-        Map.put(state, currency, amount)
+  def handle_call({:withdraw, amount, currency}, _from, state) do
+    case (state[currency] || 0) - amount do
+      new_amount when new_amount >= 0 ->
+        {:reply, {:ok, new_amount}, Map.put(state, currency, new_amount)}
+      
+      _invalid ->
+        {:reply, {:error, :not_enough_money}, state}
     end
-    |> (&{:noreply, &1}).()
   end
 end
