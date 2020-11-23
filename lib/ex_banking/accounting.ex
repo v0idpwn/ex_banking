@@ -20,44 +20,56 @@ defmodule ExBanking.Accounting do
     end
   end
 
-  def find_user(name) do 
+  def find_user(name) do
     name
     |> :global.whereis_name()
-    |> case do 
+    |> case do
       :undefined ->
         {:error, :user_does_not_exist}
+
       pid ->
         {:ok, pid}
     end
   end
 
-  def deposit(name, amount, currency) do 
-    with {:ok, pid} <- find_user(name) do
+  def deposit(name, amount, currency) do
+    with {:ok, pid} <- find_user(name),
+         {:ok, currency} <- validate_currency(currency),
+         {:ok, amount} <- validate_amount(amount) do
       UserServer.deposit(pid, amount, currency)
     end
   end
 
-  def withdraw(name, amount, currency) do 
-    with {:ok, pid} <- find_user(name) do
+  def withdraw(name, amount, currency) do
+    with {:ok, pid} <- find_user(name),
+         {:ok, currency} <- validate_currency(currency),
+         {:ok, amount} <- validate_amount(amount) do
       UserServer.withdraw(pid, amount, currency)
     end
   end
 
-  def get_balance(name, currency) do 
-    with {:ok, pid} <- find_user(name) do
+  def get_balance(name, currency) do
+    with {:ok, pid} <- find_user(name),
+         {:ok, currency} <- validate_currency(currency) do
       UserServer.get_balance(pid, currency)
     end
   end
 
-  def send(sender, receiver, amount, currency) do 
+  def send(sender, receiver, amount, currency) do
     with {:sender, {:ok, sender_pid}} <- {:sender, find_user(sender)},
-         {:receiver, {:ok, receiver_pid}} <- {:receiver, find_user(receiver)} do
+         {:receiver, {:ok, receiver_pid}} <- {:receiver, find_user(receiver)},
+         {:ok, currency} <- validate_currency(currency),
+         {:ok, amount} <- validate_amount(amount) do
       UserServer.send(sender_pid, receiver_pid, amount, currency)
     else
       {:sender, {:error, :user_does_not_exist}} ->
         {:error, :sender_does_not_exist}
+
       {:receiver, {:error, :user_does_not_exist}} ->
         {:error, :receiver_does_not_exist}
+
+      error ->
+        error
     end
   end
 end

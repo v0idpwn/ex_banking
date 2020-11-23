@@ -9,7 +9,12 @@ defmodule ExBanking.Accounting.Validators do
   def validate_currency(currency) when is_binary(currency), do: {:ok, currency}
   def validate_currency(_), do: {:error, :wrong_arguments}
 
-  def validate_amount(amount) when is_number(amount), do: {:ok, amount}
-  def validate_amount(_), do: {:error, :wrong_arguments}
+  def validate_amount(amount) when is_integer(amount), do: {:ok, amount}
 
+  def validate_amount(amount) when is_float(amount) do
+    rounded = Float.round(amount, 2)
+    {:ok, rounded}
+  end
+
+  def validate_amount(_), do: {:error, :wrong_arguments}
 end
